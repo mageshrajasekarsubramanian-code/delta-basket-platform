@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import config
 from app.services.delta_client import DeltaClient
 from app.services.market_data_service import MarketDataService
+from app.services.order_execution_service import OrderExecutionService
 from app.models import init_db, close_db
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ logging.basicConfig(
 # Global service instances
 delta_client: DeltaClient = None
 market_data_service: MarketDataService = None
+order_execution_service: OrderExecutionService = None
 
 
 @asynccontextmanager
@@ -37,7 +39,7 @@ async def lifespan(app: FastAPI):
     Startup: Initialize Delta client and services
     Shutdown: Clean up connections
     """
-    global delta_client, market_data_service
+    global delta_client, market_data_service, order_execution_service
 
     logger.info(f"Starting Delta Basket Platform ({config.platform.env} mode)")
 
@@ -86,10 +88,23 @@ async def lifespan(app: FastAPI):
             logger.error(f"Failed to start Market Data Service: {e}")
             market_data_service = None
 
+    # Initialize Order Execution Service
+    if config.platform.enable_order_execution and market_data_service:
+        logger.info("Starting Order Execution Service...")
+        try:
+            order_execution_service = OrderExecutionService(delta_client, market_data_service)
+            await order_execution_service.start()
+            logger.info("✅ Order Execution Service started")
+        except Exception as e:
+            logger.error(f"Failed to start Order Execution Service: {e}")
+            order_execution_service = None
+
     yield  # App runs here
 
     # Shutdown
     logger.info("Shutting down Delta Basket Platform...")
+    if order_execution_service:
+        await order_execution_service.stop()
     if market_data_service:
         await market_data_service.stop()
     if delta_client:
@@ -120,14 +135,15 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     """Check platform health and Delta Exchange status."""
-    global delta_client, market_data_service
+    global delta_client, market_data_service, order_execution_service
 
     if not delta_client:
         return {
             "status": "initializing",
             "delta_ws_connected": False,
             "delta_status": "unknown",
-            "market_data_service": None
+            "market_data_service": None,
+            "order_execution_service": None
         }
 
     mds_info = None
@@ -140,11 +156,19 @@ async def health_check():
             "expiry_dates": market_data_service.get_expiry_dates(),
         }
 
+    oes_info = None
+    if order_execution_service:
+        oes_info = {
+            "running": order_execution_service.running,
+            "active_baskets": len(order_execution_service.active_baskets),
+        }
+
     return {
         "status": "ok",
         "delta_ws_connected": delta_client.ws.connected,
         "delta_status": delta_client.get_system_status().value,
         "market_data_service": mds_info,
+        "order_execution_service": oes_info,
     }
 
 

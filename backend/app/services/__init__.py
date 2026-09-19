@@ -8,6 +8,7 @@ from .market_data_service import (
     TradeUpdate,
     ContractType,
 )
+from .order_execution_service import OrderExecutionService, OrderPhase
 
 __all__ = [
     "DeltaClient",
@@ -19,4 +20,6 @@ __all__ = [
     "TickerUpdate",
     "TradeUpdate",
     "ContractType",
+    "OrderExecutionService",
+    "OrderPhase",
 ]
