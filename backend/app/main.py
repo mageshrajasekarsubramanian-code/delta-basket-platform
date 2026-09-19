@@ -18,6 +18,7 @@ from app.services.order_execution_service import OrderExecutionService
 from app.services.pnl_engine import PnLEngine
 from app.services.trigger_monitor import TriggerMonitor
 from app.models import init_db, close_db
+from app.api import baskets_router
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +160,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(baskets_router)
 
 
 # Health check endpoint
