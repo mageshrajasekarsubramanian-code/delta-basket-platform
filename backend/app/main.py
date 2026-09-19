@@ -11,14 +11,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import config
-from app.services.delta_client import DeltaClient
-from app.services.market_data_service import MarketDataService
-from app.services.order_execution_service import OrderExecutionService
-from app.services.pnl_engine import PnLEngine
-from app.services.trigger_monitor import TriggerMonitor
-from app.models import init_db, close_db
-from app.api import baskets_router
+from backend.app.config import config
+from backend.app.services.delta_client import DeltaClient
+from backend.app.services.market_data_service import MarketDataService
+from backend.app.services.order_execution_service import OrderExecutionService
+from backend.app.services.pnl_engine import PnLEngine
+from backend.app.services.trigger_monitor import TriggerMonitor
+from backend.app.models import init_db, close_db
+from backend.app.api import baskets_router
 
 logger = logging.getLogger(__name__)
 
