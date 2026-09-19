@@ -20,8 +20,8 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool, QueuePool
 
-from app.config import config
-from app.models.basket import Base
+from backend.app.config import config
+from backend.app.models.basket import Base
 
 logger = logging.getLogger(__name__)
 
