@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import config
 from app.services.delta_client import DeltaClient
 from app.services.market_data_service import MarketDataService
+from app.models import init_db, close_db
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,15 @@ async def lifespan(app: FastAPI):
         for error in errors:
             logger.error(f"  - {error}")
         raise RuntimeError("Invalid configuration")
+
+    # Initialize database
+    logger.info("Initializing database...")
+    try:
+        await init_db()
+        logger.info("✅ Database initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        raise RuntimeError("Database initialization failed")
 
     # Initialize Delta client
     logger.info("Initializing Delta Exchange client...")
@@ -84,6 +94,7 @@ async def lifespan(app: FastAPI):
         await market_data_service.stop()
     if delta_client:
         await delta_client.stop()
+    await close_db()
     logger.info("Shutdown complete")
 
 
