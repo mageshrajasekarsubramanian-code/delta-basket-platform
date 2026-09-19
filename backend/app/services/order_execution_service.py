@@ -23,7 +23,7 @@ from backend.app.models import (
     BasketRepository, LegRepository, OrderLogRepository,
     Basket, Leg, BasketState, LegStatus, OrderType, OrderState,
 )
-from sqlalchemy.orm import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

@@ -17,7 +17,7 @@ from decimal import Decimal
 from backend.app.services.market_data_service import MarketDataService, TickerUpdate
 from backend.app.services.order_execution_service import OrderExecutionService
 from backend.app.models import Basket, BasketState
-from sqlalchemy.orm import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

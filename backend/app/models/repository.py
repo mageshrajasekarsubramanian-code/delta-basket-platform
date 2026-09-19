@@ -10,7 +10,7 @@ from typing import List, Optional
 from uuid import uuid4
 
 from sqlalchemy import select, and_, desc
-from sqlalchemy.orm import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.basket import (
     Basket, Leg, OrderLog, TickSnapshot,
