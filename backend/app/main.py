@@ -16,6 +16,7 @@ from app.services.delta_client import DeltaClient
 from app.services.market_data_service import MarketDataService
 from app.services.order_execution_service import OrderExecutionService
 from app.services.pnl_engine import PnLEngine
+from app.services.trigger_monitor import TriggerMonitor
 from app.models import init_db, close_db
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ delta_client: DeltaClient = None
 market_data_service: MarketDataService = None
 order_execution_service: OrderExecutionService = None
 pnl_engine: PnLEngine = None
+trigger_monitor: TriggerMonitor = None
 
 
 @asynccontextmanager
@@ -41,7 +43,7 @@ async def lifespan(app: FastAPI):
     Startup: Initialize Delta client and services
     Shutdown: Clean up connections
     """
-    global delta_client, market_data_service, order_execution_service, pnl_engine
+    global delta_client, market_data_service, order_execution_service, pnl_engine, trigger_monitor
 
     logger.info(f"Starting Delta Basket Platform ({config.platform.env} mode)")
 
@@ -112,10 +114,23 @@ async def lifespan(app: FastAPI):
             logger.error(f"Failed to start P&L Engine: {e}")
             pnl_engine = None
 
+    # Initialize Trigger Monitor
+    if market_data_service and order_execution_service:
+        logger.info("Starting Trigger Monitor...")
+        try:
+            trigger_monitor = TriggerMonitor(market_data_service, order_execution_service)
+            await trigger_monitor.start()
+            logger.info("✅ Trigger Monitor started")
+        except Exception as e:
+            logger.error(f"Failed to start Trigger Monitor: {e}")
+            trigger_monitor = None
+
     yield  # App runs here
 
     # Shutdown
     logger.info("Shutting down Delta Basket Platform...")
+    if trigger_monitor:
+        await trigger_monitor.stop()
     if pnl_engine:
         await pnl_engine.stop()
     if order_execution_service:
@@ -150,7 +165,7 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     """Check platform health and Delta Exchange status."""
-    global delta_client, market_data_service, order_execution_service, pnl_engine
+    global delta_client, market_data_service, order_execution_service, pnl_engine, trigger_monitor
 
     if not delta_client:
         return {
@@ -159,7 +174,8 @@ async def health_check():
             "delta_status": "unknown",
             "market_data_service": None,
             "order_execution_service": None,
-            "pnl_engine": None
+            "pnl_engine": None,
+            "trigger_monitor": None
         }
 
     mds_info = None
@@ -186,6 +202,14 @@ async def health_check():
             "tracked_baskets": len(pnl_engine.tracked_baskets),
         }
 
+    tm_info = None
+    if trigger_monitor:
+        tm_info = {
+            "running": trigger_monitor.running,
+            "monitored_baskets": len(trigger_monitor.monitored_baskets),
+            "monitoring_paused": trigger_monitor.monitoring_paused,
+        }
+
     return {
         "status": "ok",
         "delta_ws_connected": delta_client.ws.connected,
@@ -193,6 +217,7 @@ async def health_check():
         "market_data_service": mds_info,
         "order_execution_service": oes_info,
         "pnl_engine": pnl_info,
+        "trigger_monitor": tm_info,
     }
 
 

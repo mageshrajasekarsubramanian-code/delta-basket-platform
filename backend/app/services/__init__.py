@@ -10,6 +10,7 @@ from .market_data_service import (
 )
 from .order_execution_service import OrderExecutionService, OrderPhase
 from .pnl_engine import PnLEngine, PnLCalculator
+from .trigger_monitor import TriggerMonitor, TriggerType
 
 __all__ = [
     "DeltaClient",
@@ -25,4 +26,6 @@ __all__ = [
     "OrderPhase",
     "PnLEngine",
     "PnLCalculator",
+    "TriggerMonitor",
+    "TriggerType",
 ]
