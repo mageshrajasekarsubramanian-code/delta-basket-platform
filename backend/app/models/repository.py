@@ -12,7 +12,7 @@ from uuid import uuid4
 from sqlalchemy import select, and_, desc
 from sqlalchemy.orm import AsyncSession
 
-from app.models.basket import (
+from backend.app.models.basket import (
     Basket, Leg, OrderLog, TickSnapshot,
     BasketState, LegStatus, OrderState
 )

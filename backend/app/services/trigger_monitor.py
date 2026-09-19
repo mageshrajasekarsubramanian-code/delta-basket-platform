@@ -14,9 +14,9 @@ import logging
 from typing import Dict, Optional, List
 from decimal import Decimal
 
-from app.services.market_data_service import MarketDataService, TickerUpdate
-from app.services.order_execution_service import OrderExecutionService
-from app.models import Basket, BasketState
+from backend.app.services.market_data_service import MarketDataService, TickerUpdate
+from backend.app.services.order_execution_service import OrderExecutionService
+from backend.app.models import Basket, BasketState
 from sqlalchemy.orm import AsyncSession
 
 logger = logging.getLogger(__name__)

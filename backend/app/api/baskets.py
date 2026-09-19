@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import AsyncSession
 
-from app.models import (
+from backend.app.models import (
     get_db,
     BasketRepository, LegRepository,
     Basket, BasketState, LegStatus,
