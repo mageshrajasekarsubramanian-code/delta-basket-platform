@@ -15,6 +15,7 @@ from app.config import config
 from app.services.delta_client import DeltaClient
 from app.services.market_data_service import MarketDataService
 from app.services.order_execution_service import OrderExecutionService
+from app.services.pnl_engine import PnLEngine
 from app.models import init_db, close_db
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ logging.basicConfig(
 delta_client: DeltaClient = None
 market_data_service: MarketDataService = None
 order_execution_service: OrderExecutionService = None
+pnl_engine: PnLEngine = None
 
 
 @asynccontextmanager
@@ -39,7 +41,7 @@ async def lifespan(app: FastAPI):
     Startup: Initialize Delta client and services
     Shutdown: Clean up connections
     """
-    global delta_client, market_data_service, order_execution_service
+    global delta_client, market_data_service, order_execution_service, pnl_engine
 
     logger.info(f"Starting Delta Basket Platform ({config.platform.env} mode)")
 
@@ -99,10 +101,23 @@ async def lifespan(app: FastAPI):
             logger.error(f"Failed to start Order Execution Service: {e}")
             order_execution_service = None
 
+    # Initialize P&L Engine
+    if market_data_service:
+        logger.info("Starting P&L Engine...")
+        try:
+            pnl_engine = PnLEngine(market_data_service)
+            await pnl_engine.start()
+            logger.info("✅ P&L Engine started")
+        except Exception as e:
+            logger.error(f"Failed to start P&L Engine: {e}")
+            pnl_engine = None
+
     yield  # App runs here
 
     # Shutdown
     logger.info("Shutting down Delta Basket Platform...")
+    if pnl_engine:
+        await pnl_engine.stop()
     if order_execution_service:
         await order_execution_service.stop()
     if market_data_service:
@@ -135,7 +150,7 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     """Check platform health and Delta Exchange status."""
-    global delta_client, market_data_service, order_execution_service
+    global delta_client, market_data_service, order_execution_service, pnl_engine
 
     if not delta_client:
         return {
@@ -143,7 +158,8 @@ async def health_check():
             "delta_ws_connected": False,
             "delta_status": "unknown",
             "market_data_service": None,
-            "order_execution_service": None
+            "order_execution_service": None,
+            "pnl_engine": None
         }
 
     mds_info = None
@@ -163,12 +179,20 @@ async def health_check():
             "active_baskets": len(order_execution_service.active_baskets),
         }
 
+    pnl_info = None
+    if pnl_engine:
+        pnl_info = {
+            "running": pnl_engine.running,
+            "tracked_baskets": len(pnl_engine.tracked_baskets),
+        }
+
     return {
         "status": "ok",
         "delta_ws_connected": delta_client.ws.connected,
         "delta_status": delta_client.get_system_status().value,
         "market_data_service": mds_info,
         "order_execution_service": oes_info,
+        "pnl_engine": pnl_info,
     }
 
 
