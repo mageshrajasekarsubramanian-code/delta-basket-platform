@@ -1,0 +1,41 @@
+# Delta Basket Platform Configuration
+# Copy this to config.yaml and fill in your credentials
+
+# Delta Exchange India API Configuration
+delta:
+  # Your Delta Exchange API key
+  api_key: "8dlmMlUB2clG1O9C6PsNMiXiNHNGB8"
+
+  # Your Delta Exchange API secret
+  api_secret: "zxKI18M7eihOhI9o7nAdCdgJiY8UcBvyrBHjL8PVIT9LpxhMDidOJEl7ZKRc"
+
+  # API base URL (prod or testnet)
+  base_url: "https://api.india.delta.exchange"
+  # base_url: "https://cdn-ind.testnet.deltaex.org"  # For testnet
+
+  # WebSocket URL
+  ws_url: "wss://stream.india.delta.exchange/v2/live"
+  # ws_url: "wss://stream.india.testnet.deltaex.org/v2/live"  # For testnet
+
+# PostgreSQL Database Configuration
+database:
+  user: "postgres"
+  password: "postgres"
+  host: "localhost"
+  port: 5432
+  database: "delta_basket_db"
+
+# Platform Configuration
+platform:
+  # Environment: development, staging, production
+  env: "development"
+
+  # Debug mode
+  debug: true
+
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_level: "INFO"
+
+  # Default basket entry timeout (minutes)
+  # If all legs don't fill within this time, the basket is force-closed
+  entry_timeout_minutes: 15

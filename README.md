@@ -294,25 +294,88 @@ If WebSocket remains unavailable, the platform falls back to REST polling (`/v2/
 
 ---
 
-## Known Limitations (Step 1)
+---
+
+## Step 2: Market Data Service
+
+### What's Included
+
+✅ **Instrument Loading**
+- Fetches all BTC/ETH perpetual futures (BTCUSD, ETHUSD)
+- Fetches BTC/ETH options for current-day + next-day expiries only
+- Automatic filtering by contract type and expiry date
+- Periodic refresh (every 5 minutes)
+
+✅ **Futures Streaming**
+- WebSocket subscriptions to `ticker:BTCUSD`, `ticker:ETHUSD`, etc.
+- Live mark price updates via `mark_price` channel
+- Caching of latest tick per symbol
+
+✅ **Option Chain Management**
+- Index options by expiry date for quick lookups
+- Filter by strike, contract type, underlying
+- Shows available strikes and call/put counts per expiry
+
+✅ **Pub/Sub System**
+- Handlers for ticker updates per symbol
+- Handlers for trade updates
+- Handlers for instrument changes
+- Multiple subscribers per channel supported
+
+✅ **Market Data Caching**
+- Latest ticker for each symbol cached in memory
+- Latest trade for each symbol cached
+- Instruments indexed by symbol and expiry
+
+### Market Data Service API
+
+```python
+# Get instruments
+futures = mds.get_futures(underlying="BTC")  # All BTC futures
+options = mds.get_options(underlying="BTC", expiry_date="2026-09-20")
+
+# Subscribe to updates
+def on_ticker(update: TickerUpdate):
+    print(f"{update.symbol} @ ${update.mark_price}")
+
+mds.subscribe_ticker("BTCUSD", on_ticker)
+
+# Get latest data
+ticker = mds.get_ticker("BTCUSD")
+print(f"Mark: ${ticker.mark_price}, Bid: ${ticker.bid}, Ask: ${ticker.ask}")
+
+# List expiries
+dates = mds.get_expiry_dates()  # ["2026-09-20", "2026-09-27", ...]
+```
+
+### Testing Step 2
+
+```bash
+python test_market_data_service.py
+```
+
+Tests:
+1. ✅ Instrument loading (futures + options)
+2. ✅ Ticker subscriptions (live updates)
+3. ✅ Option chain filtering by expiry
+4. ✅ Multiple concurrent subscriptions
+
+---
+
+## Known Limitations (Steps 1-2)
 
 - ⚠️ Credentials stored in plain text in `config.yaml` (phase 2 will add encryption)
 - ⚠️ No database integration yet (step 3)
 - ⚠️ No order execution yet (step 4)
 - ⚠️ WebSocket only handles public channels (private channels for orders coming in step 4)
-- ⚠️ No ticker filtering by expiry (will be added in step 2 when fetching option chains)
+- ⚠️ No greeks streaming in real-time (option greeks cached at product fetch time)
 
 ---
 
 ## Next Steps
 
-After reviewing this step 1 foundation:
-
-1. ✅ **Step 1 (CURRENT)**: Delta API wrapper ← You are here
-2. **Step 2**: Market Data Service
-   - Stream BTC/ETH futures + option chains
-   - Filter by expiry date
-   - Internal pub/sub for downstream services
+1. ✅ **Step 1**: Delta API wrapper — REST + WebSocket client with exponential backoff
+2. 🚀 **Step 2 (CURRENT)**: Market Data Service — Stream futures + cache option chains
 3. **Step 3**: Basket/Leg data model + PostgreSQL persistence
 4. **Step 4**: Order Execution Service
    - Buy-first sequencing

@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import config
 from app.services.delta_client import DeltaClient
+from app.services.market_data_service import MarketDataService
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-# Global client instance
+# Global service instances
 delta_client: DeltaClient = None
+market_data_service: MarketDataService = None
 
 
 @asynccontextmanager
@@ -34,7 +36,7 @@ async def lifespan(app: FastAPI):
     Startup: Initialize Delta client and services
     Shutdown: Clean up connections
     """
-    global delta_client
+    global delta_client, market_data_service
 
     logger.info(f"Starting Delta Basket Platform ({config.platform.env} mode)")
 
@@ -63,10 +65,23 @@ async def lifespan(app: FastAPI):
             logger.error(f"Failed to start WebSocket: {e}")
             # Don't fail startup, will retry on reconnection
 
+    # Initialize Market Data Service
+    if config.platform.enable_market_data_service:
+        logger.info("Starting Market Data Service...")
+        try:
+            market_data_service = MarketDataService(delta_client)
+            await market_data_service.start()
+            logger.info("✅ Market Data Service started")
+        except Exception as e:
+            logger.error(f"Failed to start Market Data Service: {e}")
+            market_data_service = None
+
     yield  # App runs here
 
     # Shutdown
     logger.info("Shutting down Delta Basket Platform...")
+    if market_data_service:
+        await market_data_service.stop()
     if delta_client:
         await delta_client.stop()
     logger.info("Shutdown complete")
@@ -94,19 +109,31 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     """Check platform health and Delta Exchange status."""
-    global delta_client
+    global delta_client, market_data_service
 
     if not delta_client:
         return {
             "status": "initializing",
             "delta_ws_connected": False,
-            "delta_status": "unknown"
+            "delta_status": "unknown",
+            "market_data_service": None
+        }
+
+    mds_info = None
+    if market_data_service:
+        mds_info = {
+            "running": market_data_service.running,
+            "futures_count": len(market_data_service.futures),
+            "options_count": len(market_data_service.options),
+            "tickers_cached": len(market_data_service.tickers),
+            "expiry_dates": market_data_service.get_expiry_dates(),
         }
 
     return {
         "status": "ok",
         "delta_ws_connected": delta_client.ws.connected,
         "delta_status": delta_client.get_system_status().value,
+        "market_data_service": mds_info,
     }
 
 
