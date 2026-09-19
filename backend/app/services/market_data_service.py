@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 from dataclasses import dataclass, field
 from enum import Enum
 
-from delta_client import DeltaClient, WebSocketMessage, SystemStatus
+from .delta_client import DeltaClient, WebSocketMessage, SystemStatus
 
 logger = logging.getLogger(__name__)
 
@@ -177,12 +177,14 @@ class MarketDataService:
                 contract_type = product.get("contract_type", "").lower()
                 underlying = product.get("underlying_asset", {}).get("symbol", "").upper()
 
-                # Skip inactive products
-                if product.get("state") != "ACTIVE":
+                # Skip inactive products (Delta returns "live", others may return "ACTIVE")
+                state = product.get("state", "").lower()
+                if state not in ["active", "live"]:
                     continue
 
                 # Futures: BTC and ETH perpetuals
-                if contract_type == "perpetual_futures" and underlying in ["BTC", "ETH"]:
+                # Note: Check multiple possible names for perpetual futures
+                if contract_type in ["perpetual_futures", "perpetual"] and underlying in ["BTC", "ETH"]:
                     instrument = Instrument(
                         symbol=symbol,
                         product_id=product_id,
@@ -195,7 +197,20 @@ class MarketDataService:
 
                 # Options: BTC and ETH, only current-day + next-day
                 elif contract_type in ["call_options", "put_options"] and underlying in ["BTC", "ETH"]:
-                    expiry_str = product.get("expiration_date", "")
+                    # Try to get expiry from settlement_time or expiration_date
+                    expiry_str = None
+
+                    # Try settlement_time (e.g., "2026-10-09T12:00:00Z")
+                    settlement_time = product.get("settlement_time")
+                    if settlement_time:
+                        try:
+                            expiry_str = settlement_time.split("T")[0]  # Extract date part
+                        except:
+                            pass
+
+                    # Fallback to expiration_date field
+                    if not expiry_str:
+                        expiry_str = product.get("expiration_date", "")
 
                     if expiry_str:
                         try:

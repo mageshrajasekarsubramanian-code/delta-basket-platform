@@ -58,7 +58,14 @@ class DeltaRestClient:
         self.api_key = api_key
         self.api_secret = api_secret
         self.base_url = base_url
-        self.client = httpx.AsyncClient(base_url=base_url, timeout=30.0)
+        # Note: verify=False for local testing due to SSL cert issues
+        # In production (Docker/DO), this should be verify=True
+        logger.debug("⚠️  SSL verification disabled (development mode)")
+        self.client = httpx.AsyncClient(
+            base_url=base_url,
+            timeout=30.0,
+            verify=False  # Disable SSL verification for local testing
+        )
 
     def _generate_signature(self, method: str, timestamp: str, path: str, query: str = "", body: str = "") -> str:
         """

@@ -151,24 +151,31 @@ class Config:
 
     def _load_env_overrides(self) -> None:
         """Load overrides from environment variables (for Docker/deployment)."""
-        if api_key := os.getenv("DELTA_API_KEY"):
+        api_key = os.getenv("DELTA_API_KEY")
+        if api_key:
             self.delta.api_key = api_key
 
-        if api_secret := os.getenv("DELTA_API_SECRET"):
+        api_secret = os.getenv("DELTA_API_SECRET")
+        if api_secret:
             self.delta.api_secret = api_secret
 
-        if db_url := os.getenv("DATABASE_URL"):
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
             # Parse connection string if provided
             self.database.host = os.getenv("DB_HOST", self.database.host)
-            self.database.port = int(os.getenv("DB_PORT", self.database.port))
+            db_port = os.getenv("DB_PORT")
+            if db_port:
+                self.database.port = int(db_port)
             self.database.user = os.getenv("DB_USER", self.database.user)
             self.database.password = os.getenv("DB_PASSWORD", self.database.password)
             self.database.database = os.getenv("DB_NAME", self.database.database)
 
-        if env := os.getenv("ENVIRONMENT"):
+        env = os.getenv("ENVIRONMENT")
+        if env:
             self.platform.env = env
 
-        if debug := os.getenv("DEBUG"):
+        debug = os.getenv("DEBUG")
+        if debug:
             self.platform.debug = debug.lower() == "true"
 
     def validate(self) -> tuple[bool, list[str]]:
