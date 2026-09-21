@@ -122,9 +122,6 @@ async def create_basket(
             tp_underlying_config=request.tp_underlying_config,
         )
 
-        await db.commit()
-        await db.refresh(basket)
-
         logger.info(f"✅ Created basket {basket.id[:8]}...")
 
         return BasketResponse(
@@ -134,8 +131,7 @@ async def create_basket(
 
     except Exception as e:
         logger.error(f"Error creating basket: {e}")
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("", response_model=BasketListResponse)
