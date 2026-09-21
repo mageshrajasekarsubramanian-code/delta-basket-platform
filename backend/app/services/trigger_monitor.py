@@ -64,12 +64,6 @@ class TriggerMonitor:
         logger.info("Starting Trigger Monitor...")
         self.running = True
 
-        # Subscribe to system status for maintenance tracking
-        def on_system_status(status):
-            self._on_system_status_change(status)
-
-        self.market_data_service.subscribe_instruments(on_system_status)
-
         # Start background monitoring task
         self.tasks.append(asyncio.create_task(self._monitor_loop()))
 
