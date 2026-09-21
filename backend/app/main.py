@@ -12,6 +12,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 
 from backend.app.config import config
 from backend.app.services.delta_client import DeltaClient
@@ -166,10 +167,10 @@ app.add_middleware(
 # Include API routers
 app.include_router(baskets_router)
 
-# Serve frontend static files
+# Serve frontend static files (only assets, not SPA routing)
 frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
 
 
 # Health check endpoint
@@ -234,7 +235,12 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    """API root."""
+    """Serve frontend SPA index.html"""
+    frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
+    index_html = frontend_dist / "index.html"
+    if index_html.exists():
+        with open(index_html, "r") as f:
+            return HTMLResponse(content=f.read())
     return {
         "message": "Delta Basket Platform API",
         "docs": "/docs",
