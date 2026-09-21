@@ -159,16 +159,14 @@ class Config:
         if api_secret:
             self.delta.api_secret = api_secret
 
-        db_url = os.getenv("DATABASE_URL")
-        if db_url:
-            # Parse connection string if provided
-            self.database.host = os.getenv("DB_HOST", self.database.host)
-            db_port = os.getenv("DB_PORT")
-            if db_port:
-                self.database.port = int(db_port)
-            self.database.user = os.getenv("DB_USER", self.database.user)
-            self.database.password = os.getenv("DB_PASSWORD", self.database.password)
-            self.database.database = os.getenv("DB_NAME", self.database.database)
+        # Load database configuration from environment variables
+        self.database.host = os.getenv("DB_HOST", self.database.host)
+        db_port = os.getenv("DB_PORT")
+        if db_port:
+            self.database.port = int(db_port)
+        self.database.user = os.getenv("DB_USER", self.database.user)
+        self.database.password = os.getenv("DB_PASSWORD", self.database.password)
+        self.database.database = os.getenv("DB_NAME", self.database.database)
 
         env = os.getenv("ENVIRONMENT")
         if env:
