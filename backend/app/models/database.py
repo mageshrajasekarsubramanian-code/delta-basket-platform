@@ -43,9 +43,7 @@ async def init_db() -> None:
     _engine = create_async_engine(
         db_url,
         echo=config.platform.debug,  # SQL logging in debug mode
-        poolclass=QueuePool,  # Connection pooling
-        pool_size=5,
-        max_overflow=10,
+        poolclass=NullPool,  # Use NullPool for async (no connection pooling)
         pool_pre_ping=True,  # Test connections before using
         connect_args={
             "timeout": 30,
