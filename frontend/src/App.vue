@@ -193,7 +193,7 @@ export default {
         const response = await fetch('/health')
         const data = await response.json()
         systemStatus.value = data.delta_status
-        maintenanceMode.value = data.delta_status !== 'operational'
+        maintenanceMode.value = data.delta_status === 'maintenance'
       } catch (error) {
         console.error('Failed to fetch health:', error)
       }
