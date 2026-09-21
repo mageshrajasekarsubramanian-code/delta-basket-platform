@@ -7,9 +7,11 @@ Phase 2+: Will add market data service, order execution, basket engine, etc.
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend.app.config import config
 from backend.app.services.delta_client import DeltaClient
@@ -163,6 +165,11 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(baskets_router)
+
+# Serve frontend static files
+frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
+if frontend_dist.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 
 
 # Health check endpoint
