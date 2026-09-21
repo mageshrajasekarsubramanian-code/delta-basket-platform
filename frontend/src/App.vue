@@ -159,6 +159,68 @@
         +
       </button>
     </div>
+
+    <!-- Create Basket Modal -->
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
+      <div class="bg-white dark:bg-slate-800 w-full sm:max-w-md rounded-t-lg sm:rounded-lg shadow-lg p-6 max-h-96 overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white">Create Basket</h2>
+          <button
+            @click="showCreateModal = false"
+            class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form @submit.prevent="createBasket" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Basket Name
+            </label>
+            <input
+              v-model="newBasket.name"
+              type="text"
+              placeholder="e.g., BTC Bull Spread"
+              class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Underlying
+            </label>
+            <select
+              v-model="newBasket.underlying"
+              class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              required
+            >
+              <option value="">Select underlying</option>
+              <option value="BTCUSD">Bitcoin (BTCUSD)</option>
+              <option value="ETHUSD">Ethereum (ETHUSD)</option>
+            </select>
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              type="button"
+              @click="showCreateModal = false"
+              class="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="!newBasket.name || !newBasket.underlying"
+              class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -173,7 +235,34 @@ export default {
     const showCreateModal = ref(false)
     const systemStatus = ref('operational')
     const maintenanceMode = ref(false)
+    const newBasket = ref({ name: '', underlying: '' })
     let refreshInterval
+
+    const createBasket = async () => {
+      try {
+        const response = await fetch('/baskets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newBasket.value.name,
+            underlying: newBasket.value.underlying,
+            legs: []
+          })
+        })
+        if (response.ok) {
+          showCreateModal.value = false
+          newBasket.value = { name: '', underlying: '' }
+          await fetchBaskets()
+          alert('Basket created successfully!')
+        } else {
+          const error = await response.json()
+          alert(`Failed to create basket: ${error.detail || 'Unknown error'}`)
+        }
+      } catch (error) {
+        console.error('Failed to create basket:', error)
+        alert('Failed to create basket')
+      }
+    }
 
     const fetchBaskets = async () => {
       try {
@@ -260,7 +349,9 @@ export default {
       showCreateModal,
       systemStatus,
       maintenanceMode,
+      newBasket,
       fetchBaskets,
+      createBasket,
       refreshBasket,
       closeBasket,
       getTotalPnL,
